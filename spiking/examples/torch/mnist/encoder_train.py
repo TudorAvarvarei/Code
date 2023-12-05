@@ -14,8 +14,8 @@ from tqdm import tqdm, trange
 import yaml
 import objgraph
 
-sys.path.append("C:\\Users\\tavar\\Desktop\\Thesis\\Code\\spiking_tutorial\\spiking\\core\\torch")
-sys.path.append("C:\\Users\\tavar\\Desktop\\Thesis\\Code\\spiking_tutorial\\spiking")
+sys.path.append("C:\\Users\\tavar\\Desktop\\Thesis\\Code\\spiking\\core\\torch")
+sys.path.append("C:\\Users\\tavar\\Desktop\\Thesis\\Code\\spiking")
 from core.torch.layer import LinearCubaLif
 from core.torch.model import get_model, BaseModel
 
@@ -156,7 +156,7 @@ def main(config, args):
     # test_loader = DataLoader(test_ds, shuffle=False, **config["dataloader"])
 
     # Specify the path to your CSV file
-    csv_file_path = 'data/data.csv'
+    csv_file_path = 'C:/Users/tavar/Desktop/Thesis/Code/spiking/examples/torch/mnist/data/data.csv'
 
     # Create a dataset instance
     dataset = MyDataset(csv_file_path, steps) #, transform=Compose([ToTensor(), ToBinTransform(), ToSeqTransform(steps)]))
@@ -209,7 +209,7 @@ def main(config, args):
         summary_writer.flush()
         summary_writer.close()
 
-    torch.save(model.state_dict(), "C:/Users/tavar/Desktop/Thesis/Code/spiking_tutorial/spiking/examples/torch/mnist/models/model_CPU_800_neurons.pth")
+    torch.save(model.state_dict(), "C:/Users/tavar/Desktop/Thesis/Code/spiking/examples/torch/mnist/models/model_CPU_800_neurons.pth")
 
 
 if __name__ == "__main__":

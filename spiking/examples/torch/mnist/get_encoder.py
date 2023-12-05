@@ -6,8 +6,8 @@ import argparse
 import yaml
 from tqdm import tqdm
 import sys
-sys.path.append("C:\\Users\\tavar\\Desktop\\Thesis\\Code\\spiking_tutorial\\spiking\\core\\torch")
-sys.path.append("C:\\Users\\tavar\\Desktop\\Thesis\\Code\\spiking_tutorial\\spiking")
+sys.path.append("C:\\Users\\tavar\\Desktop\\Thesis\\Code\\spiking\\core\\torch")
+sys.path.append("C:\\Users\\tavar\\Desktop\\Thesis\\Code\\spiking")
 from examples.torch.mnist.encoder_train import Model
 from core.torch.model import get_model, BaseModel
 from core.torch.layer import LinearCubaLif
@@ -55,7 +55,7 @@ def main(config):
     device = torch.device(device)
 
     # Specify the path to your CSV file
-    csv_file_path = 'data_test.csv'
+    csv_file_path = 'C:/Users/tavar/Desktop/Thesis/Code/spiking/examples/torch/mnist/data/data_test.csv'
 
     # Create a dataset instance
     dataset = MyDataset(csv_file_path) #, transform=Compose([ToTensor(), ToBinTransform(), ToSeqTransform(steps)]))
@@ -68,7 +68,7 @@ def main(config):
     x = next(iter(testing_dataset))
     print("Input size:", x[0, :].size())
     pretrained_model = get_model(Model, config["model"], data=x[0, :], device=device)
-    pretrained_model.load_state_dict(torch.load("C:/Users/tavar/Desktop/Thesis/Code/spiking_tutorial/spiking/examples/torch/mnist/models/model.pth"))
+    pretrained_model.load_state_dict(torch.load("C:/Users/tavar/Desktop/Thesis/Code/spiking/examples/torch/mnist/models/model.pth"))
     pretrained_dict = pretrained_model.state_dict()
 
     del(config["model"]["p1"])
