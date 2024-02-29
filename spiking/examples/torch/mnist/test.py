@@ -31,7 +31,7 @@ for i, spike_train in enumerate(spike_output):
     print(f"Input {i + 1}: {spike_train}")
 '''
 
-import numpy as np
+"""import numpy as np
 from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.layers import Dense
 
@@ -62,4 +62,8 @@ encoded_data = model.predict(data)
 print("Original Data:")
 print(data[0])
 print("\nEncoded Data:")
-print(encoded_data[0])
+print(encoded_data[0])"""
+
+import torch
+
+print(torch.sigmoid(torch.Tensor([0.0, 0.0])))

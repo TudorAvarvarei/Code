@@ -2,7 +2,7 @@ from tensorboard.backend.event_processing import event_accumulator
 import os
 
 # Specify the path to your TensorBoard log directory
-log_dir = './runs/2023-11-20_neurons_1000_epochs_10'
+log_dir = './runs/2024-02-13_neurons_500_epochs_10'
 
 # Find the latest event file in the log directory
 event_file = max([os.path.join(log_dir, d) for d in os.listdir(log_dir) if d.startswith("events")])

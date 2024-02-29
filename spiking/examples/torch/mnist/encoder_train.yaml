@@ -1,10 +1,10 @@
 training:
-  epochs: 10
+  epochs: 5
   lr: 0.01
-  device: gpu
+  device: cpu
 
 dataset:
-  steps: 200
+  steps: 2000
 
 dataloader:
   batch_size: 4
@@ -15,17 +15,17 @@ dataloader:
 model:
   e1:
     synapse:
-      out_features: 800
-      bias: true
+      out_features: 200
+      bias: false
     neuron:
       dynamics:
         leak_i: [-2.0, 0.5]
         leak_v: [-2.0, 0.5]
-        thresh: [0.0, 0.0]
+        thresh: [1.0, 0.5]
       learnable: [leak_i, leak_v, thresh]
       spike_fn:
         name: ArcTan
         shape: [1.0, 10.0]
   p1:
     out_features: 28
-    bias: true
+    bias: false

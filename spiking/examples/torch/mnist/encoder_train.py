@@ -18,6 +18,7 @@ sys.path.append("C:\\Users\\tavar\\Desktop\\Thesis\\Code\\spiking\\core\\torch")
 sys.path.append("C:\\Users\\tavar\\Desktop\\Thesis\\Code\\spiking")
 from core.torch.layer import LinearCubaLif
 from core.torch.model import get_model, BaseModel
+import wandb
 
 # spikes = []
 
@@ -55,6 +56,9 @@ def sequence(model, data):
 
 def train_epoch(model, dataloader, optimizer, device):
     model.train()
+    
+    # Tell wandb to watch what the model gets up to: gradients, weights, and more!
+    # wandb.watch(model, criterion=sequence, log="parameters", log_freq=1)
 
     epoch_loss = 0
     # epoch_accuracy = 0
@@ -68,6 +72,8 @@ def train_epoch(model, dataloader, optimizer, device):
 
             loss = sequence(model, data)
             loss.backward()
+
+            # wandb.log({"Loss":loss.item()})
 
             epoch_loss += loss.item()
             # epoch_accuracy += accuracy.item()
@@ -107,9 +113,13 @@ def eval_model(model, dataloader, device):
 class MyDataset(Dataset):
     def __init__(self, csv_file, steps):
         self.data = pd.read_csv(csv_file, header=0)
-        self.max_array = np.max(self.data, axis=0)
-        self.min_array = np.min(self.data, axis=0)
-        self.normalized_arr = (self.data - self.min_array) / (self.max_array - self.min_array)
+        self.constant_columns = self.data.loc[:, :].columns[self.data.loc[:, :].std(axis=0) <= 1e-10]
+        self.max_array = self.data.loc[:, :].max(axis=0)
+        self.min_array = self.data.loc[:, :].min(axis=0)
+        self.normalized_arr = self.data.copy()
+        for col in self.data.columns:
+            if col not in self.constant_columns:
+                self.normalized_arr[col] = (self.data[col] - self.min_array[col]) / (self.max_array[col] - self.min_array[col])
         self.steps = steps
         self.values = self.normalized_arr.values
         self.length = int(len(self.data)/self.steps)
@@ -126,49 +136,24 @@ class MyDataset(Dataset):
 
 def main(config, args):
     # training params
-    epochs = config["training"]["epochs"]
-    lr = config["training"]["lr"]
-    # device = config["training"]["device"]
-    # if torch.cuda.is_available():
-    #     device = "cuda:0"
-    #     print("Device = CUDA")
-    # else:
-    #     device = "cpu"
-    #     print("Device = CPU")
-
     device = "cpu"
-
     device = torch.device(device)
-
-    # dataset
-    # make single image into a sequence repeating the image for the number of steps
     steps = config["dataset"]["steps"]
-    # x_to_bin = lambda x: x.gt(0.5).float()
-    # x_to_seq = lambda x: x.unsqueeze(0).expand(steps, -1, -1, -1)  # (c, h, w) -> (t, c, h, w)
-    # train_ds = MNIST("data", download=True, train=True, transform = Compose([ToTensor(), ToBinTransform(), ToSeqTransform(steps)]))
-    # test_ds = MNIST("data", download=True, train=False, transform=Compose([ToTensor(), ToBinTransform(), ToSeqTransform(steps)]))
-    
-    # train_ds = MNIST("data", download=True, train=True, transform = Compose([ToTensor(), ToBinTransform(), ToSeqTransform(steps)]))
-    # test_ds = MNIST("data", download=True, train=False, transform=Compose([ToTensor(), ToBinTransform(), ToSeqTransform(steps)]))
-
-    # dataloader
-    # train_loader = DataLoader(train_ds, shuffle=True, **config["dataloader"])
-    # test_loader = DataLoader(test_ds, shuffle=False, **config["dataloader"])
 
     # Specify the path to your CSV file
     csv_file_path = 'C:/Users/tavar/Desktop/Thesis/Code/spiking/examples/torch/mnist/data/data.csv'
 
     # Create a dataset instance
     dataset = MyDataset(csv_file_path, steps) #, transform=Compose([ToTensor(), ToBinTransform(), ToSeqTransform(steps)]))
+    # dataset = dataset[0:1024]
     print("Dataset_size:", len(dataset))
     # Split the dataset into training and validation sets
     train_size = 0.9  # Adjust as needed
     train_dataset, val_dataset = train_test_split(dataset, train_size=train_size, shuffle=True, random_state=42)
-    # print("train:", len(train_dataset), "validate:", len(val_dataset))
 
     # Create a DataLoader
     train_loader = DataLoader(train_dataset, shuffle=True, **config["dataloader"])
-    test_loader = DataLoader(val_dataset, shuffle=True, **config["dataloader"]) 
+    test_loader = DataLoader(val_dataset, shuffle=True, **config["dataloader"])
 
     # # get model and trace it
     x = next(iter(train_loader))
@@ -181,14 +166,15 @@ def main(config, args):
                                                 + "_epochs_" + str(config["training"]["epochs"])))
 
     # optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=config["training"]["lr"])
     optimizer.zero_grad()
 
     # loop that you can break
     try:
-        with trange(epochs, desc="epochs", leave=False, dynamic_ncols=True) as epochs_loop:
+        with trange(config["training"]["epochs"], desc="epochs", leave=False, dynamic_ncols=True) as epochs_loop:
             for t in epochs_loop:
-                objgraph.show_growth(limit=10)
+                # objgraph.show_growth(limit=10)
+                train_loader = DataLoader(train_dataset, **config["dataloader"])#, sampler=torch.utils.data.RandomSampler(train_dataset, replacement=True, num_samples=400))
                 train_loss = train_epoch(model, train_loader, optimizer, device)
                 test_loss = eval_model(model, test_loader, device)
 
@@ -198,9 +184,7 @@ def main(config, args):
                 )
                 if not args.debug:
                     summary_writer.add_scalar("train_loss", train_loss, t)
-                    #summary_writer.add_scalar("train_accuracy", train_accuracy, t)
                     summary_writer.add_scalar("test_loss", test_loss, t)
-                    #summary_writer.add_scalar("test_accuracy", test_accuracy, t)
 
     except KeyboardInterrupt:
         pass
@@ -209,8 +193,19 @@ def main(config, args):
         summary_writer.flush()
         summary_writer.close()
 
-    torch.save(model.state_dict(), "C:/Users/tavar/Desktop/Thesis/Code/spiking/examples/torch/mnist/models/model_CPU_800_neurons.pth")
+    torch.save(model.state_dict(), "C:/Users/tavar/Desktop/Thesis/Code/spiking/examples/torch/mnist/models/200_neurons_large_leak_value_trained_long.pth")
 
+    return model
+
+
+def model_pipeline(config_wandb, config_main, args):
+    # tell wandb to get started
+    with wandb.init(project="my_awesome_model", config=config_wandb):
+        # make the model, data, and optimization problem
+        model = main(config_main, args)
+        print(model)
+
+    return model
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -222,3 +217,11 @@ if __name__ == "__main__":
         config = yaml.load(f, Loader=yaml.FullLoader)
 
     main(config, args)
+    # config_wandb = dict(
+    #     epochs=config["training"]["epochs"],
+    #     learning_rate=config["training"]["lr"],
+    #     batch_size=config["dataloader"]["batch_size"],
+    #     num_workers=config["dataloader"]["num_workers"]
+    # )
+
+    # model_pipeline(config_wandb, config, args)

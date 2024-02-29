@@ -31,9 +31,13 @@ class ModelEncoder(BaseModel):
 class MyDataset(Dataset):
     def __init__(self, csv_file):
         self.data = pd.read_csv(csv_file, header=0)
-        self.max_array = np.max(self.data, axis=0)
-        self.min_array = np.min(self.data, axis=0)
-        self.normalized_arr = (self.data - self.min_array) / (self.max_array - self.min_array)
+        self.constant_columns = self.data.loc[:, :].columns[self.data.loc[:, :].std(axis=0) <= 1e-10]
+        self.max_array = self.data.loc[:, :].max(axis=0)
+        self.min_array = self.data.loc[:, :].min(axis=0)
+        self.normalized_arr = self.data.copy()
+        for col in self.data.columns:
+            if col not in self.constant_columns:
+                self.normalized_arr[col] = (self.data[col] - self.min_array[col]) / (self.max_array[col] - self.min_array[col])
         self.normalized_arr_reduced = self.normalized_arr.iloc[0:5, :]
 
     def __len__(self):

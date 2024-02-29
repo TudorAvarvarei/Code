@@ -3,15 +3,21 @@ from matplotlib import pyplot as plt
 import os
 
 # Specify the path to your TensorBoard log directory
-log_dirs = ['./runs/2023-12-04_neurons_200_epochs_10',
-           './runs/2023-12-04_neurons_300_epochs_10',
-           './runs/2023-12-04_neurons_400_epochs_10',
-           './runs/2023-12-01_neurons_500_epochs_10',
-           './runs/2023-12-04_neurons_600_epochs_10',
-           './runs/2023-12-04_neurons_700_epochs_10',
-           './runs/2023-12-04_neurons_800_epochs_10']
+log_dirs = ['./runs/2024-02-27_batches_64',
+            './runs/2024-02-27_batches_128',
+            './runs/2024-02-27_batches_256',
+            './runs/2024-02-27_batches_512',
+            './runs/2024-02-27_batches_1024',
+            './runs/2024-02-27_batches_2048']
 
-epochs = [200, 300, 400, 500, 600, 700, 800]
+
+epochs = [0, 1, 2, 3, 4, 5]
+legend = ["64_batches",
+          "128_batches",
+          "256_batches",
+          "512_batches",
+          "1024_batches",
+          "2048_batches",]
 
 train_loss_dict = {}
 test_loss_dict = {}
@@ -45,10 +51,10 @@ for log_dir in log_dirs:
 
 fig, (ax1, ax2) = plt.subplots(2, sharex=True, sharey=True)
 for epoch in epochs:
-    ax1.plot(train_loss_dict[epoch], label=str(epoch))
+    ax1.plot(train_loss_dict[epoch], label=legend[epoch])
 
 for epoch in epochs:
-    ax2.plot(test_loss_dict[epoch], label=str(epoch))
+    ax2.plot(test_loss_dict[epoch], label=legend[epoch])
 
 fig.text(0.5, 0.04, 'Epoch', ha='center')
 fig.text(0.04, 0.5, 'Loss', va='center', rotation='vertical')
@@ -57,5 +63,22 @@ ax1.legend()
 ax2.set_title("Testing data")
 ax2.legend()
 
-fig.show()
-plt.pause(9999)
+plt.show()
+
+fig, (ax1, ax2) = plt.subplots(2, sharex=True, sharey=True)
+min_list_train = []
+for epoch in epochs:
+    min_list_train.append(min(train_loss_dict[epoch]))
+ax1.bar(legend, min_list_train)
+
+min_list_test = []
+for epoch in epochs:
+    min_list_test.append(min(test_loss_dict[epoch]))
+ax2.bar(legend, min_list_test)
+
+fig.text(0.5, 0.04, 'Epoch', ha='center')
+fig.text(0.04, 0.5, 'Loss', va='center', rotation='vertical')
+ax1.set_title("Training data")
+ax2.set_title("Testing data")
+
+plt.show()
