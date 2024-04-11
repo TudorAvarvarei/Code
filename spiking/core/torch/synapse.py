@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from lazy import BaseModuleMixin
 
 
-__all__ = ["Linear", "Conv3d", "TraceConv3d"]
+__all__ = ["Linear", "MaskedLazyLinear", "Conv3d", "TraceConv3d"]
 
 
 class Linear(nn.LazyLinear):
@@ -22,6 +22,25 @@ class Linear(nn.LazyLinear):
         return input, [input]
     
     def initialize_parameters(self, input, *_):  # catch and discard state argument
+        super().initialize_parameters(input=input)  # add delay dimension
+
+
+class MaskedLazyLinear(nn.LazyLinear):
+    cls_to_become = None
+    def __init__(self, out_features, bias, mask=None):
+        super().__init__(out_features, bias)  # Input size is set to 0 initially
+        self.mask = nn.Parameter(mask, requires_grad=False)
+
+    def forward(self, input, state=None):
+        # Initialize the weight and bias if they haven't been initialized yet
+        # self._lazy_load()
+
+        # Apply the mask to the weight matrix
+        masked_weight = self.mask * self.weight
+        input = nn.functional.linear(input, masked_weight, self.bias)
+        return input, [input]
+    
+    def initialize_parameters(self, input, *__):  # catch and discard state argument
         super().initialize_parameters(input=input)  # add delay dimension
     
 

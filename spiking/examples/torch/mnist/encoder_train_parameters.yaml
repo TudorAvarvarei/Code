@@ -1,0 +1,31 @@
+training:
+  epochs: 5
+  lr: 0.01
+  device: cpu
+
+dataset:
+  steps: 2000
+
+dataloader:
+  batch_size: 4
+  num_workers: 8
+  pin_memory: false
+  drop_last: true
+
+model:
+  e1:
+    synapse:
+      out_features: 140
+      bias: false
+    neuron:
+      dynamics:
+        leak_i: [-2.0, 0.5]
+        leak_v: [-2.0, 0.5]
+        thresh: [1.0, 0.5]
+      learnable: [leak_i, leak_v, thresh]
+      spike_fn:
+        name: ArcTan
+        shape: [1.0, 10.0]
+  p1:
+    out_features: 20
+    bias: false

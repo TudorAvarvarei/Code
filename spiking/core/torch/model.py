@@ -3,15 +3,21 @@ import torch.nn as nn
 from layer import *
 
 
-def get_model(model, config, data=None, device=None):
+def get_model(model, config, data=None, device=None, mask=None):
     """
     We use lazy PyTorch modules, so we need to initialize the shapes by tracing them with a batch of data.
     """
     # load model from config
-    if isinstance(model, str):
-        model = eval(model)(**config)
+    if mask is None:
+        if isinstance(model, str):
+            model = eval(model)(**config)
+        else:
+            model = model(**config)
     else:
-        model = model(**config)
+        if isinstance(model, str):
+            model = eval(model)(**config, mask=mask)
+        else:
+            model = model(**config, mask=mask)
 
     # trace model with a batch of data
     if data is not None:

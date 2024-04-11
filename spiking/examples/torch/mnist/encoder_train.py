@@ -17,6 +17,7 @@ import objgraph
 sys.path.append("C:\\Users\\tavar\\Desktop\\Thesis\\Code\\spiking\\core\\torch")
 sys.path.append("C:\\Users\\tavar\\Desktop\\Thesis\\Code\\spiking")
 from core.torch.layer import LinearCubaLif
+from core.torch.synapse import MaskedLazyLinear
 from core.torch.model import get_model, BaseModel
 import wandb
 
@@ -27,7 +28,7 @@ class Model(BaseModel):
         super().__init__()
 
         self.e1 = LinearCubaLif(**e1)
-        self.p1 = nn.LazyLinear(**p1)
+        self.p1 = MaskedLazyLinear(**p1)
 
     def forward(self, input):
         x = self.e1(input)
@@ -141,7 +142,7 @@ def main(config, args):
     steps = config["dataset"]["steps"]
 
     # Specify the path to your CSV file
-    csv_file_path = 'C:/Users/tavar/Desktop/Thesis/Code/spiking/examples/torch/mnist/data/data.csv'
+    csv_file_path = 'C:/Users/tavar/Desktop/Thesis/Code/spiking/examples/torch/mnist/data/data_refined.csv'
 
     # Create a dataset instance
     dataset = MyDataset(csv_file_path, steps) #, transform=Compose([ToTensor(), ToBinTransform(), ToSeqTransform(steps)]))
@@ -163,7 +164,7 @@ def main(config, args):
     # logging with tensorboard
     if not args.debug:
         summary_writer = SummaryWriter(log_dir=("runs\\" + str(datetime.date.today()) + "_neurons_" + str(config["model"]["e1"]["synapse"]["out_features"]) 
-                                                + "_epochs_" + str(config["training"]["epochs"])))
+                                                + "_epochs_" + str(config["training"]["epochs"]) + "_masked_"))
 
     # optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=config["training"]["lr"])
@@ -193,7 +194,7 @@ def main(config, args):
         summary_writer.flush()
         summary_writer.close()
 
-    torch.save(model.state_dict(), "C:/Users/tavar/Desktop/Thesis/Code/spiking/examples/torch/mnist/models/200_neurons_large_leak_value_trained_long.pth")
+    torch.save(model.state_dict(), "C:/Users/tavar/Desktop/Thesis/Code/spiking/examples/torch/mnist/models/model_200_neurons_refined.pth")
 
     return model
 

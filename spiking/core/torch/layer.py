@@ -5,7 +5,7 @@ from neuron import *
 from synapse import *
 
 
-__all__ = ["Rnn", "Conv3dRelu", "Conv3dTanh", "Conv3dIdentity", "Conv3dCubaLif", "Conv3dRnn", "Conv3dRnnCubaLif", "LinearCubaLif"]
+__all__ = ["Rnn", "Conv3dRelu", "Conv3dTanh", "Conv3dIdentity", "Conv3dCubaLif", "Conv3dRnn", "Conv3dRnnCubaLif", "LinearCubaLif", "MaskedLinearCubaLif"]
 
 
 class Conv3dRelu(nn.Module):
@@ -61,6 +61,17 @@ class LinearCubaLif(Conv3dRelu):
     synapse_module = Linear
     neuron_module = CubaLif
 
+class MaskedLinearCubaLif(Conv3dRelu):
+    synapse_module = MaskedLazyLinear
+    neuron_module = CubaLif
+
+    def __init__(self, synapse, neuron, mask=None):
+        nn.Module.__init__(self)
+
+        self.synapse = self.synapse_module(**synapse, mask=mask)
+        self.neuron = self.neuron_module(**neuron)
+
+        self.state = [None, None]  # synapse, neuron
 
 class Rnn(nn.Module):
     """
