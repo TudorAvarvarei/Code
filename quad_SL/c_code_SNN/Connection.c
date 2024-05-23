@@ -14,6 +14,10 @@ Connection build_connection(int const post, int const pre) {
 
   // Allocate memory for weight array
   c.w = calloc(post * pre, sizeof(*c.w));
+  // for (int i = 0; i<post; i++){
+  //   c.w_ptr[i] = (float*) malloc(pre * sizeof(int));
+  // }
+
 
   return c;
 }
@@ -34,7 +38,7 @@ void reset_connection(Connection *c) {}
 
 // Load parameters for connection (weights) from a header file
 // (using the ConnectionConf struct)
-void load_connection_from_header(Connection *c, ConnectionConf const *conf) {
+void load_connection_from_header(Connection *c, ConnectionConf *conf) {
   // Check if same shape
   if ((c->pre != conf->pre) || (c->post != conf->post)) {
     printf("Connection has a different shape than specified in the "
@@ -43,10 +47,8 @@ void load_connection_from_header(Connection *c, ConnectionConf const *conf) {
   }
   // Loop over weights
   // TODO: could also be done by just exchanging pointers to arrays?
-  for (int i = 0; i < c->post; i++) {
-    for (int j = 0; j < c->pre; j++) {
-      c->w[i * c->pre + j] = conf->w[i * c->pre + j];
-    }
+  for (int i=0; i<c->post*c->pre; i++){
+    c->w[i] = conf->w[i];
   }
 }
 
@@ -59,11 +61,22 @@ void free_connection(Connection *c) {
 
 // Forward
 // Spikes as floats to deal with real-valued inputs
-void forward_connection(Connection *c, float x[], float const s[]) {
+void forward_connection_float(Connection *c, float out[], float const in[]) {
   // Loop over weights and multiply with spikes
   for (int i = 0; i < c->post; i++) {
     for (int j = 0; j < c->pre; j++) {
-      x[i] += c->w[i * c->pre + j] * s[j];
+      out[i] += c->w[i*c->pre + j] * in[j];
+    }
+  }
+}
+
+// Forward
+// Spikes as floats to deal with real-valued inputs
+void forward_connection_int(Connection *c, float out[], int const in[]) {
+  // Loop over weights and multiply with spikes
+  for (int i = 0; i < c->post; i++) {
+    for (int j = 0; j < c->pre; j++) {
+      out[i] += c->w[i*c->pre + j] * in[j];
     }
   }
 }

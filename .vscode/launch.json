@@ -4,14 +4,33 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         {
             "name": "Python: Current File",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}\\spiking\\examples\\torch\\mnist",
-            "justMyCode": true
+            "justMyCode": false
+        },
+
+        {
+            "name": "C Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "cwd": "${workspaceFolder}\\quad_SL\\c_code_SNN",
+            "program": "${file}",
+            "stopAtEntry": false,
+            // "customLaunchSetupCommands": [
+            //     { "text": "target-run", "description": "run target", "ignoreFailures": false }
+            // ],
+            "launchCompleteCommand": "exec-run",
+            "windows": {
+                "MIMode": "gdb",
+                "targetArchitecture": "x64",
+                "miDebuggerPath": "C:\\MinGw\\bin\\gdb.exe"
+            }
         }
     ]
 }

@@ -1,53 +1,42 @@
 #include "Network.h"
-#include "Connection.h"
-#include "Neuron.h"
-#include "functional.h"
-
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 // Build network: calls build functions for children
-Network build_network(int const in_size, int const in_enc_size,
-                      int const hid_size, int const out_size) {
+Network build_network(int const in_size, int const hid_layer_size,
+                      int const hid_neuron_size, int const out_size) {
   // Network struct
   Network net;
 
-  // Set encoding type
-  net.type = BOTH;
-
-  // Set decoding scale
-  net.decoding_scale = 1.0f;
-
-  // Set sizes
-  // Output size has to be 1
-  if (out_size != 1) {
-    printf("Network output size should be 1!\n");
-    exit(1);
-  }
   net.in_size = in_size;
-  net.in_enc_size = in_enc_size;
-  net.hid_size = hid_size;
+  net.hid_layer_size = hid_layer_size;
+  net.hid_neuron_size = hid_neuron_size;
   net.out_size = out_size;
 
   // Allocate memory for input placeholders, place cell centers and underlying
   // neurons and connections
-  net.in = calloc(in_size, sizeof(*net.in));
-  net.in_enc = calloc(in_enc_size, sizeof(*net.in_enc));
-  net.centers = calloc(in_enc_size, sizeof(*net.centers));
+  net.input = calloc(in_size, sizeof(*net.input));
+  net.input_norm = calloc(in_size, sizeof(*net.input_norm));
+  net.in_norm_min = calloc(in_size, sizeof(*net.in_norm_min));
+  net.in_norm_max = calloc(in_size, sizeof(*net.in_norm_max));
+  net.output = calloc(out_size, sizeof(*net.output));
+  net.output_decoded = calloc(out_size, sizeof(*net.output_decoded));
   // TODO: is this the best way to do this? Or let network struct consist of
   //  actual structs instead of pointers to structs?
   net.inhid = malloc(sizeof(*net.inhid));
-  net.hid = malloc(sizeof(*net.hid));
+  net.hid1 = malloc(sizeof(*net.hid1));
+  net.hid2 = malloc(sizeof(*net.hid2));
   net.hidout = malloc(sizeof(*net.hidout));
-  net.out = malloc(sizeof(*net.out));
+  net.layer1 = malloc(sizeof(*net.layer1));
+  net.layer2 = malloc(sizeof(*net.layer2));
+  net.layer3 = malloc(sizeof(*net.layer3));
 
   // Call build functions for underlying neurons and connections
-  *net.inhid = build_connection(hid_size, in_enc_size);
-  *net.hid = build_neuron(hid_size);
-  *net.hidout = build_connection(out_size, hid_size);
-  *net.out = build_neuron(out_size);
+  *net.inhid = build_connection(hid_neuron_size, in_size);
+  *net.hid1 = build_connection(hid_neuron_size, hid_neuron_size);
+  *net.hid2 = build_connection(hid_neuron_size, hid_neuron_size);
+  *net.hidout = build_connection(out_size, hid_neuron_size);
+  *net.layer1 = build_neuron(hid_neuron_size);
+  *net.layer2 = build_neuron(hid_neuron_size);
+  *net.layer3 = build_neuron(hid_neuron_size);
 
   return net;
 }
@@ -56,54 +45,70 @@ Network build_network(int const in_size, int const in_enc_size,
 void init_network(Network *net) {
   // Loop over input placeholders
   for (int i = 0; i < net->in_size; i++) {
-    net->in[i] = 0.0f;
+    net->input[i] = 0.0f;
+    net->input_norm[i] = 0.0f;
+    net->in_norm_min[i] = 0.0f;
+    net->in_norm_max[i] = 0.0f;
   }
-  for (int i = 0; i < net->in_enc_size; i++) {
-    net->in_enc[i] = 0.0f;
-    net->centers[i] = 0.0f;
+
+  for (int i = 0; i < net->out_size; i++) {
+    net->output[i] = 0.0f;
+    net->output_decoded[i] = 0.0f;
   }
   // Call init functions for children
   init_connection(net->inhid);
-  init_neuron(net->hid);
+  init_connection(net->hid1);
+  init_connection(net->hid2);
   init_connection(net->hidout);
-  init_neuron(net->out);
+  init_neuron(net->layer1);
+  init_neuron(net->layer2);
+  init_neuron(net->layer3);
 }
 
 // Reset network: calls reset functions for children
 void reset_network(Network *net) {
   reset_connection(net->inhid);
-  reset_neuron(net->hid);
+  reset_connection(net->hid1);
+  reset_connection(net->hid2);
   reset_connection(net->hidout);
-  reset_neuron(net->out);
+  reset_neuron(net->layer1);
+  reset_neuron(net->layer2);
+  reset_neuron(net->layer3);
 }
 
 // Load parameters for network from header file and call load functions for
 // children
-void load_network_from_header(Network *net, NetworkConf const *conf) {
+void load_network_from_header(Network *net, NetworkConf *conf) {
   // Check shapes
   if ((net->in_size != conf->in_size) ||
-      (net->in_enc_size != conf->in_enc_size) ||
-      (net->hid_size != conf->hid_size) || (net->out_size != conf->out_size)) {
+      (net->hid_layer_size != conf->hid_layer_size) ||
+      (net->hid_neuron_size != conf->hid_neuron_size) || (net->out_size != conf->out_size)) {
     printf(
         "Network has a different shape than specified in the NetworkConf!\n");
     exit(1);
   }
-  // Encoding
-  net->type = conf->type;
   // Decoding
-  net->decoding_scale = conf->decoding_scale;
-  // Place cell centers (just BS if we don't use them)
-  for (int i = 0; i < net->in_enc_size; i++) {
-    net->centers[i] = conf->centers[i];
+  net->output_scale_min = conf->output_scale_min;
+  net->output_scale_max = conf->output_scale_max;
+  // Encoding
+  for (int i = 0; i < net->in_size; i++) {
+    net->in_norm_min[i] = conf->in_norm_min[i];
+    net->in_norm_max[i] = conf->in_norm_max[i];
   }
   // Connection input -> hidden
   load_connection_from_header(net->inhid, conf->inhid);
   // Hidden neuron
-  load_neuron_from_header(net->hid, conf->hid);
+  load_connection_from_header(net->hid1, conf->hid1);
+  // Hidden neuron
+  load_connection_from_header(net->hid2, conf->hid2);
   // Connection hidden -> output
   load_connection_from_header(net->hidout, conf->hidout);
-  // Output neuron
-  load_neuron_from_header(net->out, conf->out);
+  // Layer 1
+  load_neuron_from_header(net->layer1, conf->layer1);
+  // Layer 2
+  load_neuron_from_header(net->layer2, conf->layer2);
+  // Layer 3
+  load_neuron_from_header(net->layer3, conf->layer3);
 }
 
 // Free allocated memory for network and call free functions for children
@@ -112,88 +117,90 @@ void free_network(Network *net) {
   // Freeing in a bottom-up manner
   // TODO: or should we call this before freeing the network struct members?
   free_connection(net->inhid);
-  free_neuron(net->hid);
+  free_connection(net->hid1);
+  free_connection(net->hid2);
   free_connection(net->hidout);
-  free_neuron(net->out);
+  free_neuron(net->layer1);
+  free_neuron(net->layer2);
+  free_neuron(net->layer3);
   // calloc() was used for input placeholders and underlying neurons and
   // connections
-  free(net->in);
-  free(net->in_enc);
-  free(net->centers);
+  free(net->input);
+  free(net->input_norm);
+  free(net->in_norm_min);
+  free(net->in_norm_max);
   free(net->inhid);
-  free(net->hid);
+  free(net->hid1);
+  free(net->hid2);
   free(net->hidout);
-  free(net->out);
+  free(net->layer1);
+  free(net->layer2);
+  free(net->layer3);
 }
 
 // Print network parameters (for debugging purposes)
 void print_network(Network const *net) {
   // Encoding type
-  printf("Encoding type: %d\n", net->type);
-  printf("Place cell centers:\n");
-  print_array_1d(net->in_enc_size, net->centers);
+  // printf("Encoding type: %d\n", net->type);
+  // printf("Place cell centers:\n");
+  // print_array_1d(net->in_enc_size, net->centers);
 
   // Decoding scale
-  printf("Decoding scale: %.4f\n\n", net->decoding_scale);
+  // printf("Decoding scale: %.4f\n\n", net->decoding_scale);
 
   // Input layer
   printf("Input layer (raw):\n");
-  print_array_1d(net->in_size, net->in);
+  print_array_1d(net->in_size, net->input);
   printf("Input layer (encoded):\n");
-  print_array_1d(net->in_enc_size, net->in_enc);
+  print_array_1d(net->in_size, net->input_norm);
 
   // Connection input -> hidden
-  printf("Connection weights input -> hidden:\n");
-  print_array_2d(net->hid_size, net->in_enc_size, net->inhid->w);
+  // printf("Connection weights input -> hidden:\n");
+  // print_array_2d(net->hid_size, net->in_enc_size, net->inhid->w);
 
   // Hidden layer
-  print_neuron(net->hid);
+  // print_neuron(net->hid);
 
   // Connection hidden -> output
-  printf("Connection weights hidden -> output:\n");
-  print_array_2d(net->out_size, net->hid_size, net->hidout->w);
+  // printf("Connection weights hidden -> output:\n");
+  // print_array_2d(net->out_size, net->hid_size, net->hidout->w);
 
   // Output layer
-  print_neuron(net->out);
+  // print_neuron(net->out);
+
+  // Input layer
+  printf("Input layer (raw):\n");
+  print_array_1d(net->out_size, net->output);
+  printf("Input layer (encoded):\n");
+  print_array_1d(net->out_size, net->output_decoded);
+
 }
 
-// Encode both divergence and its derivative as current
-// Called in forward_network(), so has to be put in front (because not in
-// header)
-// TODO: also load parameters for this?
-static void encode_both(int const size, int const enc_size, float x[size],
-                        float x_enc[enc_size]) {
-  // Repeat inputs, clamp first half to positive, second half to negative
-  // and make absolute
-  for (int i = 0; i < enc_size; i++) {
-    if (i < size) {
-      x_enc[i] = fmaxf(0.0f, x[i % (size)]);
-    } else {
-      x_enc[i] = fabs(fminf(0.0f, x[i % (size)]));
+void preprocess_input(float *input, float *input_norm, const float *in_norm_min, const float *in_norm_max, const int in_size)
+{   
+    int idx;
+
+    for(idx = 0; idx < in_size - 3; idx++)
+    {
+        input_norm[idx] = (input[idx] - in_norm_min[idx])/(in_norm_max[idx] - in_norm_min[idx]);
     }
-  }
+    input_norm[in_size - 3] = 0.0f;
+    input_norm[in_size - 2] = 0.0f;
+    input_norm[in_size - 1] = 0.0f;
 }
 
-// Encode divergence through nonlinearly distributed place cells
-// TODO: also load parameters for this?
-static void encode_place(int const size, int const enc_size, float x[size],
-                         float x_enc[enc_size], float centers[enc_size]) {
-  // Place cell activity/current depends on distance between
-  // current state and center
-  // First clamp to [-10, 10]
-  // TODO: maybe make this more flexible?
-  for (int i = 0; i < size; i++) {
-    x[i] = fmaxf(-10.0f, fminf(10.0f, x[i]));
-  }
-  // Overlap of activity: total range of inputs divided by # of centers - 1
-  float sigma = 20.0f / (enc_size - 1);
-
-  // Do actual encoding
-  // 1.0: input scaling
-  for (int i = 0; i < enc_size; i++) {
-    x_enc[i] =
-        1.0f * exp(-(x[0] - centers[i]) * (x[0] - centers[i]) / (2.0f * sigma));
-  }
+/*
+Function: Post-process outputs (unscaling layers)
+*/
+void postprocess_output(float *output, float *output_decoded, const float output_scale_min, const float output_scale_max, const int out_size)
+{
+    int idx;
+    
+    for(idx = 0; idx < out_size; idx++)
+    {
+        // unscale from [0,1] to the interval [control_min, control_max]
+        output_decoded[idx] = output_scale_min + output[idx] * (output_scale_max - output_scale_min);
+    }
 }
 
 // Decode from trace
@@ -210,22 +217,30 @@ static float decode_network(int const size, float const t[size],
 // Forward network and call forward functions for children
 // Encoding and decoding inside
 // TODO: but we still need to check the size of the array we put in net->in
-float forward_network(Network *net) {
+float *forward_network(Network *net) {
   // Encode input from scalar value to currents
-  if (net->type == BOTH) {
-    encode_both(net->in_size, net->in_enc_size, net->in, net->in_enc);
-  } else if (net->type == PLACE) {
-    encode_place(net->in_size, net->in_enc_size, net->in, net->in_enc,
-                 net->centers);
-  }
-  // Call forward functions for children
-  forward_connection(net->inhid, net->hid->x, net->in_enc);
-  forward_neuron(net->hid);
-  forward_connection(net->hidout, net->out->x, net->hid->s);
-  forward_neuron(net->out);
-  // Decode output neuron traces to scalar value
-  float output =
-      decode_network(net->out_size, net->out->t, net->decoding_scale);
+  // if (net->type == BOTH) {
+  //   encode_both(net->in_size, net->in_enc_size, net->in, net->in_processed);
+  // } else if (net->type == PLACE) {
+  //   encode_place(net->in_size, net->in_enc_size, net->in, net->in_processed,
+  //                net->centers);
+  // }
+  preprocess_input(net->input, net->input_norm, net->in_norm_min, net->in_norm_max, net->in_size);
 
-  return output;
+  // Call forward functions for children
+  forward_connection_float(net->inhid, net->layer1->x, net->input_norm);
+  printf("Input first hidden layer:\n");
+  print_array_1d(net->hid_neuron_size, net->layer1->x);
+  forward_neuron(net->layer1);
+  printf("Output first hidden layer:\n");
+  print_array_1d_bool(net->hid_neuron_size, net->layer1->s);
+  forward_connection_int(net->hid1, net->layer2->x, net->layer1->s);
+  forward_neuron(net->layer2);
+  forward_connection_int(net->hid2, net->layer3->x, net->layer2->s);
+  forward_neuron(net->layer3);
+  forward_connection_int(net->hidout, net->output, net->layer3->s);
+  // Decode output neuron traces to scalar value
+  postprocess_output(net->output, net->output_decoded, net->output_scale_min, net->output_scale_max, net->out_size);
+
+  return net->output_decoded;
 }

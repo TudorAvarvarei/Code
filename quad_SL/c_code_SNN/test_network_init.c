@@ -15,15 +15,15 @@ int main() {
   init_network(&net);
 
   // Print network parameters before loading
-  print_network(&net);
+  // print_network(&net);
 
   // Load network parameters from header file
   load_network_from_header(&net, &conf);
   reset_network(&net);
 
   // Print network parameters after header loading
-  printf("\nHeader loading\n\n");
-  print_network(&net);
+  // printf("\nHeader loading\n\n");
+  // print_network(&net);
 
   // Free network memory again
   free_network(&net);

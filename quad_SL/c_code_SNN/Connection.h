@@ -18,7 +18,7 @@ typedef struct ConnectionConf {
   int const post, pre;
   // Connection weights (1D array)
   // TODO: or actual weight array? Might be easier to specify in conf header..
-  float const *w;
+  float *w;
 } ConnectionConf;
 
 // Build connection
@@ -33,11 +33,13 @@ void reset_connection(Connection *c);
 
 // Load parameters (weights) for connection from header file
 // (using the ConnectionConf struct)
-void load_connection_from_header(Connection *c, ConnectionConf const *conf);
+void load_connection_from_header(Connection *c, ConnectionConf *conf);
 
 // Free allocated memory for connection
 void free_connection(Connection *c);
 
 // Forward
 // Spikes as floats to deal with real-valued inputs
-void forward_connection(Connection *c, float x[], float const s[]);
+void forward_connection_float(Connection *c, float out[], float const in[]);
+
+void forward_connection_int(Connection *c, float out[], int const in[]);

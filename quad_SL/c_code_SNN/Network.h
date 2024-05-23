@@ -2,57 +2,61 @@
 
 #include "Connection.h"
 #include "Neuron.h"
+#include "functional.h"
 
-// Enumeration for network encoding types: div+divdot and div place cells
-typedef enum EncodingType { BOTH, PLACE } EncodingType;
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 // Struct that defines a network of two spiking layers
 typedef struct Network {
-  // Encoding type
-  EncodingType type;
-  // Decoding scale
-  float decoding_scale;
-  // We need place cell centers if we have place cell encoding
-  float *centers;
+  // Normalisation arrays with min and max values for all states
+  float *in_norm_min, *in_norm_max;
+  // Normalisation arrays with min and max values for all states
+  float output_scale_min, output_scale_max;
   // Input, encoded input, hidden and output layer sizes
-  int in_size, in_enc_size, hid_size, out_size;
+  int in_size, hid_layer_size, hid_neuron_size, out_size;
   // Two input place holders: one for scalar values
   // and one for encoded currents (size in_size)
-  float *in, *in_enc;
+  float *input, *input_norm;
+  // Two output place holders: one for network output values and 
+  // one for decoded output
+  float *output, *output_decoded;
   // Connection input -> hidden
   Connection *inhid;
-  // Hidden neurons
-  Neuron *hid;
-  // Connection hidden -> output
+  Connection *hid1;
+  Connection *hid2;
   Connection *hidout;
-  // Output neurons
-  Neuron *out;
+  // Hidden neurons
+  Neuron *layer1;
+  Neuron *layer2;
+  Neuron *layer3;
 } Network;
 
 // Struct that holds the configuration of a two-layer network
 // To be used when loading parameters from a header file
 typedef struct NetworkConf {
-  // Encoding type
-  EncodingType const type;
-  // Decoding scale
-  float decoding_scale;
-  // Place cell centers (just BS if we don't use them)
-  float const *centers;
+  // Normalisation arrays with min and max values for all states
+  const float *in_norm_min, *in_norm_max;
+  // Normalisation arrays with min and max values for all states
+  const float output_scale_min, output_scale_max;
   // Input, encoded input, hidden and output layer sizes
-  int const in_size, in_enc_size, hid_size, out_size;
-  // Connection input -> hidden
-  ConnectionConf const *inhid;
+  int const in_size, hid_layer_size, hid_neuron_size, out_size;
+  // Connections
+  ConnectionConf *inhid;
+  ConnectionConf *hid1;
+  ConnectionConf *hid2;
+  ConnectionConf *hidout;
   // Hidden neurons
-  NeuronConf const *hid;
-  // Connection hidden -> output
-  ConnectionConf const *hidout;
-  // Output neurons
-  NeuronConf const *out;
+  NeuronConf *layer1;
+  NeuronConf *layer2;
+  NeuronConf *layer3;
 } NetworkConf;
 
 // Build network: calls build functions for children
-Network build_network(int const in_size, int const in_enc_size,
-                      int const hid_size, int const out_size);
+Network build_network(int const in_size, int const hid_layer_size,
+                      int const hid_neuron_size, int const out_size);
 
 // Init network: calls init functions for children
 void init_network(Network *net);
@@ -62,7 +66,7 @@ void reset_network(Network *net);
 
 // Load parameters for network from header file and call load functions for
 // children
-void load_network_from_header(Network *net, NetworkConf const *conf);
+void load_network_from_header(Network *net, NetworkConf *conf);
 
 // Free allocated memory for network and call free functions for children
 void free_network(Network *net);
@@ -70,6 +74,12 @@ void free_network(Network *net);
 // Print network parameters (for debugging purposes)
 void print_network(Network const *net);
 
+// Normalise input
+void preprocess_input(float *input, float *input_norm, const float *in_norm_min, const float *in_norm_max, const int in_size);
+
+//Normalise output
+void postprocess_output(float *output, float *output_decoded, const float output_scale_min, const float output_scale_max, const int out_size);
+
 // Forward network and call forward functions for children
 // Encoding and decoding inside
-float forward_network(Network *net);
+float *forward_network(Network *net);

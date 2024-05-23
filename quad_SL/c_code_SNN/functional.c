@@ -10,8 +10,8 @@ void print_array_1d(int const size, float const x[size]) {
   printf("\n\n");
 }
 
-// Print 1D array of floats (as integers)
-void print_array_1d_bool(int const size, float const x[size]) {
+// Print 1D array of integers
+void print_array_1d_bool(int const size, int const x[size]) {
   for (int i = 0; i < size; i++) {
     printf("%d ", (int)x[i]);
   }
