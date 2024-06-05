@@ -1,10 +1,6 @@
 #include "Neuron.h"
 #include "functional.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-
 // Build neuron
 Neuron build_neuron(int const size) {
   // Neuron struct
@@ -70,7 +66,7 @@ void reset_neuron(Neuron *n) {
 }
 
 // Load parameters for neuron from header file (using the NeuronConf struct)
-void load_neuron_from_header(Neuron *n, NeuronConf *conf) {
+void load_neuron_from_header(Neuron *n, NeuronConf const *conf) {
   // Check shape
   if (n->size != conf->size) {
     printf("Neuron has a different shape than specified in the NeuronConf!\n");

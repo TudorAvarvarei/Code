@@ -1,5 +1,9 @@
 #pragma once
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
 #define EULER_NUMBER 2.71828182846
 
 // Struct that defines a layer of neurons
@@ -30,7 +34,7 @@ typedef struct NeuronConf {
   // Neuron layer size
   int const size;
   // Constants for leak of current, leak of voltage and threshold
-  float *leak_i, *leak_v, *thresh;
+  float const *leak_i, *leak_v, *thresh;
   // Constant for resetting voltage
   float const v_rest;
 } NeuronConf;
@@ -53,7 +57,7 @@ void reset_neuron(Neuron *n);
 
 // Load parameters for neuron from header file (using the NeuronConf struct)
 // a_v, a_th, a_t, d_v, d_th, d_t, v_rest, th_rest, type
-void load_neuron_from_header(Neuron *n, NeuronConf *conf);
+void load_neuron_from_header(Neuron *n, NeuronConf const *conf);
 
 // Free allocated memory for neuron
 void free_neuron(Neuron *n);

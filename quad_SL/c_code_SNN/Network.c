@@ -78,8 +78,8 @@ void reset_network(Network *net) {
 
 // Load parameters for network from header file and call load functions for
 // children
-void load_network_from_header(Network *net, NetworkConf *conf) {
-  // Check shapes
+void load_network_from_header(Network *net, NetworkConf const *conf) {
+  // Check shapess
   if ((net->in_size != conf->in_size) ||
       (net->hid_layer_size != conf->hid_layer_size) ||
       (net->hid_neuron_size != conf->hid_neuron_size) || (net->out_size != conf->out_size)) {
@@ -95,6 +95,7 @@ void load_network_from_header(Network *net, NetworkConf *conf) {
     net->in_norm_min[i] = conf->in_norm_min[i];
     net->in_norm_max[i] = conf->in_norm_max[i];
   }
+  
   // Connection input -> hidden
   load_connection_from_header(net->inhid, conf->inhid);
   // Hidden neuron
@@ -178,9 +179,7 @@ void print_network(Network const *net) {
 
 void preprocess_input(float *input, float *input_norm, const float *in_norm_min, const float *in_norm_max, const int in_size)
 {   
-    int idx;
-
-    for(idx = 0; idx < in_size - 3; idx++)
+    for(int idx = 0; idx < in_size - 3; idx++)
     {
         input_norm[idx] = (input[idx] - in_norm_min[idx])/(in_norm_max[idx] - in_norm_min[idx]);
     }
@@ -217,7 +216,7 @@ static float decode_network(int const size, float const t[size],
 // Forward network and call forward functions for children
 // Encoding and decoding inside
 // TODO: but we still need to check the size of the array we put in net->in
-float *forward_network(Network *net) {
+void forward_network(Network *net) {
   // Encode input from scalar value to currents
   // if (net->type == BOTH) {
   //   encode_both(net->in_size, net->in_enc_size, net->in, net->in_processed);
@@ -225,15 +224,16 @@ float *forward_network(Network *net) {
   //   encode_place(net->in_size, net->in_enc_size, net->in, net->in_processed,
   //                net->centers);
   // }
+  for(int i=0; i<net->out_size; i++){
+    net->output[i] = 0;
+  }
   preprocess_input(net->input, net->input_norm, net->in_norm_min, net->in_norm_max, net->in_size);
 
   // Call forward functions for children
   forward_connection_float(net->inhid, net->layer1->x, net->input_norm);
-  printf("Input first hidden layer:\n");
-  print_array_1d(net->hid_neuron_size, net->layer1->x);
+  // printf("Output first weights:\n");
+  // print_array_1d(net->hid_neuron_size, net->layer1->x);
   forward_neuron(net->layer1);
-  printf("Output first hidden layer:\n");
-  print_array_1d_bool(net->hid_neuron_size, net->layer1->s);
   forward_connection_int(net->hid1, net->layer2->x, net->layer1->s);
   forward_neuron(net->layer2);
   forward_connection_int(net->hid2, net->layer3->x, net->layer2->s);
@@ -241,6 +241,4 @@ float *forward_network(Network *net) {
   forward_connection_int(net->hidout, net->output, net->layer3->s);
   // Decode output neuron traces to scalar value
   postprocess_output(net->output, net->output_decoded, net->output_scale_min, net->output_scale_max, net->out_size);
-
-  return net->output_decoded;
 }

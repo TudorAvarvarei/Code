@@ -44,14 +44,14 @@ typedef struct NetworkConf {
   // Input, encoded input, hidden and output layer sizes
   int const in_size, hid_layer_size, hid_neuron_size, out_size;
   // Connections
-  ConnectionConf *inhid;
-  ConnectionConf *hid1;
-  ConnectionConf *hid2;
-  ConnectionConf *hidout;
+  ConnectionConf const *inhid;
+  ConnectionConf const *hid1;
+  ConnectionConf const *hid2;
+  ConnectionConf const *hidout;
   // Hidden neurons
-  NeuronConf *layer1;
-  NeuronConf *layer2;
-  NeuronConf *layer3;
+  NeuronConf const *layer1;
+  NeuronConf const *layer2;
+  NeuronConf const *layer3;
 } NetworkConf;
 
 // Build network: calls build functions for children
@@ -66,7 +66,7 @@ void reset_network(Network *net);
 
 // Load parameters for network from header file and call load functions for
 // children
-void load_network_from_header(Network *net, NetworkConf *conf);
+void load_network_from_header(Network *net, NetworkConf const *conf);
 
 // Free allocated memory for network and call free functions for children
 void free_network(Network *net);
@@ -82,4 +82,4 @@ void postprocess_output(float *output, float *output_decoded, const float output
 
 // Forward network and call forward functions for children
 // Encoding and decoding inside
-float *forward_network(Network *net);
+void forward_network(Network *net);

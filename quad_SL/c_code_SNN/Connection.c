@@ -38,7 +38,7 @@ void reset_connection(Connection *c) {}
 
 // Load parameters for connection (weights) from a header file
 // (using the ConnectionConf struct)
-void load_connection_from_header(Connection *c, ConnectionConf *conf) {
+void load_connection_from_header(Connection *c, ConnectionConf const *conf) {
   // Check if same shape
   if ((c->pre != conf->pre) || (c->post != conf->post)) {
     printf("Connection has a different shape than specified in the "
